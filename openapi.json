@@ -1,0 +1,607 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "x402-skill-registry",
+    "version": "0.1.0",
+    "summary": "Searchable registry of x402-paid agent skills — register with a signed listing, agents search per query.",
+    "description": "Services register themselves with a signed listing naming their skill.md URL, route prices and payment rails. Agents search per query and get back everything needed to decide whether a service is usable before spending on it. **Every listing must carry both an EVM and a Solana rail** — single-rail registrations are rejected with 422. The full index is free; ranked search costs $0.001. Paid routes speak x402: an unpaid request returns 402 with a dual-rail `accepts` array and the client picks the rail.",
+    "contact": { "name": "nirholas", "email": "nichxbt@gmail.com" },
+    "license": { "name": "Apache-2.0", "identifier": "Apache-2.0" }
+  },
+  "servers": [{ "url": "http://localhost:4030", "description": "local self-host" }],
+  "externalDocs": {
+    "description": "Docs, tutorial and a working browser checkout demo",
+    "url": "https://nirholas.github.io/x402-skill-registry/"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "getServiceCard",
+        "summary": "Service card (free)",
+        "responses": {
+          "200": {
+            "description": "Rails, prices, listing counts and the dual-rail policy.",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Liveness probe (free)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "uptime": { "type": "number" },
+                    "listings": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/skills.json": {
+      "get": {
+        "operationId": "getIndex",
+        "summary": "The full public index (free)",
+        "description": "Every live listing with its signature. Free on purpose — a directory nobody can read is not a directory. Paid /search exists for ranking and filtering, not for access.",
+        "responses": {
+          "200": {
+            "description": "The whole index.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["registry", "count", "listings", "updatedAt"],
+                  "properties": {
+                    "registry": { "type": "string" },
+                    "count": { "type": "integer" },
+                    "policy": { "type": "string" },
+                    "updatedAt": { "type": "string", "format": "date-time" },
+                    "listings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "listing": { "$ref": "#/components/schemas/Listing" },
+                          "signature": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/listing/{id}": {
+      "get": {
+        "operationId": "getListing",
+        "summary": "One listing by id (free)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The listing and its signature.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "listing": { "$ref": "#/components/schemas/Listing" },
+                    "signature": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/check-signature": {
+      "post": {
+        "operationId": "checkSignature",
+        "summary": "Validate a signed listing (free)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["payload", "signature"],
+                "properties": {
+                  "payload": { "type": "object", "description": "The listing exactly as returned." },
+                  "signature": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": { "type": "boolean" },
+                    "type": { "type": ["string", "null"] },
+                    "checkedAt": { "type": "string", "format": "date-time" },
+                    "note": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/.well-known/x402": {
+      "get": {
+        "operationId": "getX402Manifest",
+        "summary": "x402 resource manifest (free)",
+        "responses": {
+          "200": {
+            "description": "Machine-readable listing of paid resources, prices and rails.",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        }
+      }
+    },
+    "/skill.md": {
+      "get": {
+        "operationId": "getSkillFile",
+        "summary": "Agent-facing skill file (free)",
+        "responses": {
+          "200": {
+            "description": "skill.md",
+            "content": { "text/markdown": { "schema": { "type": "string" } } }
+          }
+        }
+      }
+    },
+    "/register": {
+      "post": {
+        "operationId": "registerListing",
+        "summary": "Register a service and receive a signed listing",
+        "description": "Price $0.01 in USDC. Pay on Base or Solana — the 402 lists both rails. The signed listing is the purchased artifact and is returned in this response, with a one-time update key. **Rejects any listing that does not carry both an EVM and a Solana rail.**",
+        "x-x402": { "price": "$0.01" },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ListingInput" },
+              "example": {
+                "name": "my-weather-api",
+                "description": "Hourly forecasts from NWS, per call.",
+                "skillMdUrl": "https://weather.example.com/skill.md",
+                "manifestUrl": "https://weather.example.com/.well-known/x402",
+                "homepage": "https://weather.example.com",
+                "categories": ["weather", "data"],
+                "contact": "ops@weather.example.com",
+                "resources": [
+                  {
+                    "resource": "GET /forecast",
+                    "price": "$0.001",
+                    "description": "Hourly forecast for a point"
+                  }
+                ],
+                "rails": [
+                  {
+                    "rail": "evm",
+                    "network": "base",
+                    "asset": "USDC",
+                    "payTo": "0x40252CFDF8B20Ed757D61ff157719F33Ec332402",
+                    "facilitator": "https://x402.org/facilitator"
+                  },
+                  {
+                    "rail": "solana",
+                    "network": "solana",
+                    "asset": "USDC",
+                    "payTo": "WwwuGbqHrwF5RG89KhUbmRWEvjnRH9k5kVM5p7T3WwW",
+                    "facilitator": "https://facilitator.payai.network"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The signed listing record.",
+            "headers": {
+              "X-PAYMENT-RESPONSE": {
+                "description": "Base64 JSON settlement receipt.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["listing", "signature", "updateKey"],
+                  "properties": {
+                    "listing": { "$ref": "#/components/schemas/Listing" },
+                    "signature": { "type": "string" },
+                    "algorithm": { "type": "string" },
+                    "updateKey": {
+                      "type": "string",
+                      "description": "Returned once; stored only as a SHA-256 hash."
+                    },
+                    "updateKeyNote": { "type": "string" },
+                    "listingUrl": { "type": "string" },
+                    "indexUrl": { "type": "string" },
+                    "receipt": { "type": ["object", "null"] }
+                  }
+                }
+              }
+            }
+          },
+          "402": { "$ref": "#/components/responses/PaymentRequired" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "422": { "$ref": "#/components/responses/Unprocessable" }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "searchListings",
+        "summary": "Ranked search over live listings",
+        "description": "Price $0.001 in USDC. Pay on Base or Solana — the 402 lists both rails. Scoring is explainable: exact name 10, name substring 5, category 3, description 2, route text 1, summed across terms. Every result carries `score` and `matched`.",
+        "x-x402": { "price": "$0.001" },
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Free text over name, categories, description and route names. Omit to list everything.",
+            "schema": { "type": "string", "examples": ["domain"] }
+          },
+          {
+            "name": "rail",
+            "in": "query",
+            "required": false,
+            "description": "Only listings accepting this rail.",
+            "schema": { "type": "string", "enum": ["evm", "solana"] }
+          },
+          {
+            "name": "network",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["base", "base-sepolia", "solana", "solana-devnet"]
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "required": false,
+            "description": "Only listings whose cheapest paid route is at or below this USD amount.",
+            "schema": { "type": "number", "minimum": 0 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 10 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The purchased result set.",
+            "headers": {
+              "X-PAYMENT-RESPONSE": {
+                "description": "Base64 JSON settlement receipt.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/SearchResult" } }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "PaymentRequired": {
+        "description": "Payment required. The `accepts` array lists both rails — USDC on Base and USDC on Solana. Sign one, base64 it into `X-PAYMENT`, retry.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/PaymentRequiredBody" },
+            "example": {
+              "x402Version": 1,
+              "error": "X-PAYMENT header is required",
+              "accepts": [
+                {
+                  "scheme": "exact",
+                  "network": "base-sepolia",
+                  "maxAmountRequired": "1000",
+                  "resource": "http://localhost:4030/search",
+                  "description": "Search the registry for skills matching a query, with prices and skill.md URLs",
+                  "mimeType": "application/json",
+                  "payTo": "0x40252CFDF8B20Ed757D61ff157719F33Ec332402",
+                  "maxTimeoutSeconds": 60,
+                  "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+                  "extra": { "name": "USDC", "version": "2" }
+                },
+                {
+                  "scheme": "exact",
+                  "network": "solana",
+                  "maxAmountRequired": "1000",
+                  "resource": "http://localhost:4030/search",
+                  "description": "Search the registry for skills matching a query, with prices and skill.md URLs",
+                  "mimeType": "application/json",
+                  "payTo": "WwwuGbqHrwF5RG89KhUbmRWEvjnRH9k5kVM5p7T3WwW",
+                  "maxTimeoutSeconds": 60,
+                  "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                  "extra": {
+                    "name": "USD Coin",
+                    "decimals": 6,
+                    "feePayer": "2wKupLR9q6wXYppw8Gr2NvWxKBUqm4PPJKkQfoxHDBg4"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "Malformed request.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "NotFound": {
+        "description": "Unknown listingId.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Conflict": {
+        "description": "A live listing already uses that name.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Unprocessable": {
+        "description": "The listing is not acceptable — most often because it does not carry both an EVM and a Solana rail.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": {
+              "error": "NOT_DUAL_RAIL",
+              "message": "Listings must carry both rails. Missing: a Solana rail (solana or solana-devnet). An agent's wallet lives on exactly one chain — a single-rail listing is unusable to everyone on the other one, and this registry will not publish a price that half its readers cannot pay.",
+              "detail": { "hasEvm": true, "hasSolana": false }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "BAD_REQUEST",
+              "LISTING_NOT_FOUND",
+              "NAME_TAKEN",
+              "NOT_DUAL_RAIL",
+              "MISSING_RAILS",
+              "UNSUPPORTED_NETWORK",
+              "INVALID_LISTING",
+              "INTERNAL"
+            ]
+          },
+          "message": { "type": "string" },
+          "detail": { "type": "object" }
+        }
+      },
+      "PaymentRequirements": {
+        "type": "object",
+        "description": "One accepted way to pay for this resource (one rail).",
+        "required": [
+          "scheme",
+          "network",
+          "maxAmountRequired",
+          "resource",
+          "description",
+          "mimeType",
+          "payTo",
+          "maxTimeoutSeconds",
+          "asset"
+        ],
+        "properties": {
+          "scheme": { "type": "string", "enum": ["exact"] },
+          "network": {
+            "type": "string",
+            "enum": ["base", "base-sepolia", "solana", "solana-devnet"]
+          },
+          "maxAmountRequired": {
+            "type": "string",
+            "description": "Amount in asset base units (USDC has 6 decimals)."
+          },
+          "resource": { "type": "string", "format": "uri" },
+          "description": { "type": "string" },
+          "mimeType": { "type": "string" },
+          "payTo": { "type": "string" },
+          "maxTimeoutSeconds": { "type": "integer" },
+          "asset": { "type": "string" },
+          "extra": { "type": "object" }
+        }
+      },
+      "PaymentRequiredBody": {
+        "type": "object",
+        "required": ["x402Version", "accepts"],
+        "properties": {
+          "x402Version": { "type": "integer", "enum": [1] },
+          "error": { "type": "string" },
+          "accepts": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/components/schemas/PaymentRequirements" }
+          }
+        }
+      },
+      "ListingRail": {
+        "type": "object",
+        "required": ["network", "payTo"],
+        "properties": {
+          "rail": { "type": "string", "enum": ["evm", "solana"] },
+          "network": {
+            "type": "string",
+            "enum": ["base", "base-sepolia", "solana", "solana-devnet"]
+          },
+          "asset": { "type": "string", "default": "USDC" },
+          "payTo": {
+            "type": "string",
+            "description": "0x + 40 hex for EVM networks, base58 for Solana networks."
+          },
+          "facilitator": {
+            "type": "string",
+            "format": "uri",
+            "description": "The facilitator that settles THIS rail — they are chain-specific."
+          },
+          "feePayer": {
+            "type": "string",
+            "description": "Solana only: the sponsor account that pays the network fee."
+          }
+        }
+      },
+      "ListingResource": {
+        "type": "object",
+        "required": ["resource", "price"],
+        "properties": {
+          "resource": { "type": "string", "pattern": "^[A-Z]+ /", "examples": ["GET /forecast"] },
+          "price": { "type": "string", "pattern": "^(free|\\$\\d+(\\.\\d+)?)$" },
+          "description": { "type": "string", "maxLength": 400 }
+        }
+      },
+      "ListingInput": {
+        "type": "object",
+        "required": ["name", "description", "skillMdUrl", "rails", "resources"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 80 },
+          "description": { "type": "string", "maxLength": 1000 },
+          "skillMdUrl": { "type": "string", "format": "uri" },
+          "homepage": { "type": "string", "format": "uri" },
+          "manifestUrl": { "type": "string", "format": "uri" },
+          "openapiUrl": { "type": "string", "format": "uri" },
+          "categories": { "type": "array", "maxItems": 12, "items": { "type": "string" } },
+          "contact": { "type": "string" },
+          "ttlDays": { "type": "integer", "minimum": 1, "maximum": 3650, "default": 365 },
+          "resources": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": { "$ref": "#/components/schemas/ListingResource" }
+          },
+          "rails": {
+            "type": "array",
+            "minItems": 2,
+            "description": "MUST include at least one EVM rail and at least one Solana rail, or the request is rejected with 422 NOT_DUAL_RAIL.",
+            "items": { "$ref": "#/components/schemas/ListingRail" }
+          }
+        }
+      },
+      "Listing": {
+        "type": "object",
+        "required": [
+          "type",
+          "listingId",
+          "name",
+          "description",
+          "skillMdUrl",
+          "resources",
+          "rails",
+          "dualRail",
+          "registeredAt",
+          "expiresAt",
+          "origin"
+        ],
+        "properties": {
+          "type": { "type": "string", "const": "x402-skill-listing" },
+          "listingId": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "homepage": { "type": ["string", "null"] },
+          "skillMdUrl": { "type": "string", "format": "uri" },
+          "manifestUrl": { "type": ["string", "null"] },
+          "openapiUrl": { "type": ["string", "null"] },
+          "categories": { "type": "array", "items": { "type": "string" } },
+          "resources": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ListingResource" }
+          },
+          "rails": { "type": "array", "items": { "$ref": "#/components/schemas/ListingRail" } },
+          "dualRail": {
+            "type": "boolean",
+            "const": true,
+            "description": "Always true — registration rejects anything else."
+          },
+          "contact": { "type": ["string", "null"] },
+          "registeredAt": { "type": "string", "format": "date-time" },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "origin": {
+            "type": "string",
+            "enum": ["registered", "seed"],
+            "description": "`seed` rows are the x402 Suite's own services, added on first boot so a fresh index is not empty."
+          }
+        }
+      },
+      "SearchResult": {
+        "type": "object",
+        "required": ["count", "results", "searchedAt"],
+        "properties": {
+          "query": { "type": ["string", "null"] },
+          "filters": { "type": "object" },
+          "count": { "type": "integer" },
+          "results": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                { "$ref": "#/components/schemas/Listing" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "cheapestPaidRoute": { "type": "number" },
+                    "score": { "type": "number" },
+                    "matched": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "Which fields matched, so relevance is explainable."
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "searchedAt": { "type": "string", "format": "date-time" },
+          "receipt": { "type": ["object", "null"] }
+        }
+      }
+    }
+  }
+}

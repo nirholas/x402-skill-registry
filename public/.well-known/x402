@@ -1,0 +1,207 @@
+{
+  "x402Version": 1,
+  "name": "x402-skill-registry",
+  "description": "Searchable registry of x402-paid agent skills — register with a signed listing, agents search per query. Every listing accepts USDC on both Base and Solana. Pay in USDC on Base or Solana; your client picks the rail.",
+  "homepage": "https://nirholas.github.io/x402-skill-registry/",
+  "skill": "/skill.md",
+  "openapi": "/openapi.json",
+  "index": "/skills.json",
+  "demo": "/index.html",
+  "contact": "nichxbt@gmail.com",
+  "policy": "Listings must carry both an EVM and a Solana rail. Single-rail registrations are rejected with 422 NOT_DUAL_RAIL.",
+  "facilitator": {
+    "evm": "https://x402.org/facilitator",
+    "solana": "https://facilitator.payai.network"
+  },
+  "rails": [
+    {
+      "rail": "evm",
+      "network": "base-sepolia",
+      "asset": "USDC",
+      "assetAddress": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "payTo": "0x40252CFDF8B20Ed757D61ff157719F33Ec332402",
+      "facilitator": "https://x402.org/facilitator"
+    },
+    {
+      "rail": "solana",
+      "network": "solana",
+      "asset": "USDC",
+      "assetAddress": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "payTo": "WwwuGbqHrwF5RG89KhUbmRWEvjnRH9k5kVM5p7T3WwW",
+      "facilitator": "https://facilitator.payai.network",
+      "feePayer": "2wKupLR9q6wXYppw8Gr2NvWxKBUqm4PPJKkQfoxHDBg4"
+    }
+  ],
+  "resources": [
+    {
+      "resource": "POST /register",
+      "description": "Register an x402 service and receive a signed listing record plus a one-time update key. Rejects listings that do not carry both an EVM and a Solana rail.",
+      "price": "$0.01",
+      "asset": "USDC",
+      "networks": ["base-sepolia", "base", "solana", "solana-devnet"],
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "base-sepolia",
+          "asset": "USDC",
+          "payTo": "0x40252CFDF8B20Ed757D61ff157719F33Ec332402",
+          "maxAmountRequired": "10000"
+        },
+        {
+          "scheme": "exact",
+          "network": "solana",
+          "asset": "USDC",
+          "payTo": "WwwuGbqHrwF5RG89KhUbmRWEvjnRH9k5kVM5p7T3WwW",
+          "maxAmountRequired": "10000"
+        }
+      ],
+      "inputSchema": {
+        "type": "object",
+        "required": ["name", "description", "skillMdUrl", "rails", "resources"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 80 },
+          "description": { "type": "string", "maxLength": 1000 },
+          "skillMdUrl": { "type": "string", "format": "uri" },
+          "homepage": { "type": "string", "format": "uri" },
+          "manifestUrl": { "type": "string", "format": "uri" },
+          "openapiUrl": { "type": "string", "format": "uri" },
+          "categories": { "type": "array", "maxItems": 12, "items": { "type": "string" } },
+          "contact": { "type": "string" },
+          "ttlDays": { "type": "integer", "minimum": 1, "maximum": 3650, "default": 365 },
+          "resources": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "required": ["resource", "price"],
+              "properties": {
+                "resource": { "type": "string", "pattern": "^[A-Z]+ /" },
+                "price": { "type": "string", "pattern": "^(free|\\$\\d+(\\.\\d+)?)$" },
+                "description": { "type": "string" }
+              }
+            }
+          },
+          "rails": {
+            "type": "array",
+            "minItems": 2,
+            "description": "MUST include at least one EVM rail and at least one Solana rail.",
+            "items": {
+              "type": "object",
+              "required": ["network", "payTo"],
+              "properties": {
+                "network": {
+                  "type": "string",
+                  "enum": ["base", "base-sepolia", "solana", "solana-devnet"]
+                },
+                "asset": { "type": "string", "default": "USDC" },
+                "payTo": { "type": "string" },
+                "facilitator": { "type": "string", "format": "uri" },
+                "feePayer": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "required": ["listing", "signature", "updateKey"],
+        "properties": {
+          "listing": { "type": "object" },
+          "signature": { "type": "string" },
+          "algorithm": { "type": "string" },
+          "updateKey": { "type": "string" },
+          "listingUrl": { "type": "string" },
+          "indexUrl": { "type": "string" }
+        }
+      }
+    },
+    {
+      "resource": "GET /search",
+      "description": "Ranked search over live listings, returning skill.md URLs, prices and rails. Every result carries score and matched fields so relevance is explainable.",
+      "price": "$0.001",
+      "asset": "USDC",
+      "networks": ["base-sepolia", "base", "solana", "solana-devnet"],
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "base-sepolia",
+          "asset": "USDC",
+          "payTo": "0x40252CFDF8B20Ed757D61ff157719F33Ec332402",
+          "maxAmountRequired": "1000"
+        },
+        {
+          "scheme": "exact",
+          "network": "solana",
+          "asset": "USDC",
+          "payTo": "WwwuGbqHrwF5RG89KhUbmRWEvjnRH9k5kVM5p7T3WwW",
+          "maxAmountRequired": "1000"
+        }
+      ],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "q": { "type": "string", "description": "free text over name, categories, description, routes" },
+          "rail": { "type": "string", "enum": ["evm", "solana"] },
+          "network": {
+            "type": "string",
+            "enum": ["base", "base-sepolia", "solana", "solana-devnet"]
+          },
+          "category": { "type": "string" },
+          "maxPrice": { "type": "number", "minimum": 0 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 50, "default": 10 }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "required": ["count", "results", "searchedAt"],
+        "properties": {
+          "query": { "type": ["string", "null"] },
+          "filters": { "type": "object" },
+          "count": { "type": "integer" },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "listingId": { "type": "string" },
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "skillMdUrl": { "type": "string", "format": "uri" },
+                "manifestUrl": { "type": ["string", "null"] },
+                "openapiUrl": { "type": ["string", "null"] },
+                "homepage": { "type": ["string", "null"] },
+                "categories": { "type": "array", "items": { "type": "string" } },
+                "resources": { "type": "array", "items": { "type": "object" } },
+                "cheapestPaidRoute": { "type": "number" },
+                "rails": { "type": "array", "items": { "type": "object" } },
+                "dualRail": { "type": "boolean" },
+                "origin": { "type": "string", "enum": ["registered", "seed"] },
+                "score": { "type": "number" },
+                "matched": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          },
+          "searchedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  ],
+  "freeResources": [
+    {
+      "resource": "GET /skills.json",
+      "description": "The full public index: every live listing with its signature. Free — a directory nobody can read is not a directory.",
+      "price": "free"
+    },
+    {
+      "resource": "GET /listing/:id",
+      "description": "One listing with its signature",
+      "price": "free"
+    },
+    {
+      "resource": "POST /check-signature",
+      "description": "Validate any listing this registry signed",
+      "price": "free"
+    }
+  ]
+}

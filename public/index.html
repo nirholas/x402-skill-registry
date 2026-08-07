@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>x402-skill-registry — search paid agent skills</title>
+<meta name="description" content="A live checkout demo: pay $0.001 in USDC on Base or Solana and search the registry of x402-paid agent skills.">
+<style>
+:root{
+  --accent:#0052ff;--bg:#ffffff;--fg:#0a0c10;--muted:#57606a;
+  --card:#f6f8fa;--border:#d0d7de;--code-bg:#0d1117;--code-fg:#e6edf3;--ok:#1f883d;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0d1117;--fg:#e6edf3;--muted:#9198a1;--card:#161b22;--border:#30363d;--ok:#3fb950}
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg);line-height:1.6;-webkit-text-size-adjust:100%}
+.wrap{max-width:820px;margin:0 auto;padding:0 20px}
+header{padding:56px 0 28px;text-align:center}
+.badge{display:inline-block;font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:2px 12px;margin-bottom:14px}
+h1{font-size:38px;letter-spacing:-1px;margin-bottom:10px}
+@media (max-width:560px){h1{font-size:28px}}
+.tagline{font-size:18px;color:var(--muted);max-width:620px;margin:0 auto}
+section{padding:24px 0}
+h2{font-size:22px;margin-bottom:12px;letter-spacing:-.4px}
+p{margin-bottom:12px}
+a{color:var(--accent)}
+code{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);color:var(--code-fg);border-radius:10px;padding:16px;overflow-x:auto;font-size:13px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type=text]{flex:1 1 240px;min-width:0;padding:11px 14px;font-size:15px;border-radius:9px;border:1px solid var(--border);background:var(--bg);color:var(--fg);font-family:inherit}
+input[type=text]:focus{outline:2px solid var(--accent);outline-offset:-1px}
+button{padding:11px 20px;font-size:15px;font-weight:600;font-family:inherit;border:0;border-radius:9px;background:var(--accent);color:#fff;cursor:pointer}
+button:hover{filter:brightness(1.08)}
+button.ghost{background:transparent;color:var(--fg);border:1px solid var(--border)}
+.price{font-size:13px;color:var(--muted);margin-top:10px}
+.rails{display:inline-flex;gap:6px;flex-wrap:wrap;margin-left:6px}
+.pill{font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.pill.evm{border-color:#0052ff;color:#0052ff}
+.pill.sol{border-color:#14a37f;color:#14a37f}
+#status{margin-top:14px;font-size:14px;color:var(--muted);min-height:1.5em}
+#status.ok{color:var(--ok)}
+#status.err{color:#cf222e}
+.result{border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:12px;background:var(--bg)}
+.result h3{font-size:17px;margin-bottom:4px}
+.result .desc{font-size:14px;color:var(--muted);margin-bottom:10px}
+.result .meta{font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.routes{list-style:none;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.routes li{display:flex;justify-content:space-between;gap:12px;padding:3px 0;border-bottom:1px dashed var(--border)}
+.routes li:last-child{border-bottom:0}
+.routes .p{color:var(--accent);font-weight:700;white-space:nowrap}
+.receipt{margin-top:14px;font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);word-break:break-all}
+footer{padding:36px 0;color:var(--muted);font-size:14px;text-align:center;border-top:1px solid var(--border);margin-top:36px}
+footer a{text-decoration:none}
+.note{font-size:13.5px;color:var(--muted)}
+</style>
+<script type="module" src="https://unpkg.com/@three-ws/x402-payment-modal"></script>
+</head>
+<body>
+
+<header class="wrap">
+  <div class="badge">x402 · USDC on Base + Solana</div>
+  <h1>x402-skill-registry</h1>
+  <p class="tagline">A searchable index of agent skills you can pay for. Search costs <b>$0.001</b> — connect a wallet below and buy one, no account required.</p>
+</header>
+
+<section class="wrap">
+  <h2>Buy a search</h2>
+  <div class="panel">
+    <div class="row">
+      <input type="text" id="q" value="domain" placeholder="domains, podcasts, github, openapi…" aria-label="Search query">
+      <button id="pay"
+        data-x402-endpoint="/search?q=domain"
+        data-x402-method="GET"
+        data-x402-merchant="x402-skill-registry"
+        data-x402-action="Search the registry">Pay $0.001 &amp; search</button>
+      <button class="ghost" id="free">Browse the index (free)</button>
+    </div>
+    <p class="price">
+      $0.001 in USDC, on
+      <span class="rails"><span class="pill evm">Base</span><span class="pill sol">Solana</span></span>
+      — the modal reads both rails out of the 402 and lets you pick. Phantom for Solana, any EVM
+      wallet for Base. Testnet by default, so this costs you nothing real.
+    </p>
+    <div id="status"></div>
+  </div>
+  <div id="results"></div>
+</section>
+
+<section class="wrap">
+  <h2>What just happened</h2>
+  <p>The button made a plain <code>GET /search</code>. The server answered <b>402 Payment Required</b>
+  with an <code>accepts</code> array holding two payment requirements — USDC on Base and USDC on
+  Solana. The modal rendered that as a wallet choice, you signed one, and the request was replayed
+  with an <code>X-PAYMENT</code> header. The 200 carried the results and an
+  <code>X-PAYMENT-RESPONSE</code> receipt.</p>
+  <p>No account was created. No key was issued. The same flow works for an agent, which is the
+  point — see <a href="https://github.com/nirholas/x402-skill-registry/blob/main/skill.md">skill.md</a>.</p>
+  <p class="note">The checkout modal is <a href="https://www.npmjs.com/package/@three-ws/x402-payment-modal"><code>@three-ws/x402-payment-modal</code></a>,
+  loaded from a CDN. It also does SIWX re-entry — sign in once and subsequent purchases skip the
+  wallet prompt — and per-origin spending caps, so a page cannot quietly drain a wallet. It is a
+  separate proprietary package; this repo references it and does not vendor it.</p>
+</section>
+
+<section class="wrap">
+  <h2>Every listing takes both rails</h2>
+  <p>Registration rejects a listing that does not carry an EVM rail <b>and</b> a Solana rail — a
+  422, not a warning. An agent's wallet lives on exactly one chain, so a single-rail entry is
+  unusable to everyone on the other one, and a directory whose entries you cannot pay is a list of
+  names.</p>
+  <pre>curl -s localhost:4030/skills.json | jq '.listings[].listing.rails[] | {rail, network}'
+
+{ "rail": "evm",    "network": "base-sepolia" }
+{ "rail": "solana", "network": "solana" }</pre>
+</section>
+
+<footer class="wrap">
+  <p>
+    <a href="https://github.com/nirholas/x402-skill-registry">GitHub</a> ·
+    <a href="https://nirholas.github.io/x402-skill-registry/">Docs</a> ·
+    <a href="/skills.json">skills.json</a> ·
+    <a href="/skill.md">skill.md</a> ·
+    <a href="/.well-known/x402">.well-known/x402</a> ·
+    <a href="https://x402.org">x402</a>
+  </p>
+  <p>Part of the <a href="https://github.com/nirholas/x402-suite">x402 Suite</a> · Apache-2.0</p>
+</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const statusEl = $("status");
+const resultsEl = $("results");
+
+function setStatus(text, kind) {
+  statusEl.textContent = text;
+  statusEl.className = kind ?? "";
+}
+
+const esc = (s) =>
+  String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/** Keep the paid button's endpoint in step with the query box. */
+$("q").addEventListener("input", (e) => {
+  const q = encodeURIComponent(e.target.value.trim());
+  $("pay").setAttribute("data-x402-endpoint", `/search?q=${q}`);
+});
+
+function railPills(rails = []) {
+  return rails
+    .map((r) => `<span class="pill ${r.rail === "solana" ? "sol" : "evm"}">${esc(r.network)}</span>`)
+    .join(" ");
+}
+
+function render(listings, { paid } = {}) {
+  if (!listings.length) {
+    resultsEl.innerHTML = `<div class="result"><p class="desc">No listings matched.</p></div>`;
+    return;
+  }
+  resultsEl.innerHTML = listings
+    .map(
+      (l) => `
+      <div class="result">
+        <h3>${esc(l.name)}${l.origin === "seed" ? ' <span class="pill">seed</span>' : ""}</h3>
+        <p class="desc">${esc(l.description)}</p>
+        <div class="meta">
+          <span>${railPills(l.rails)}</span>
+          ${l.categories?.length ? `<span>${esc(l.categories.join(" · "))}</span>` : ""}
+          ${paid && l.matched?.length ? `<span>matched: ${esc(l.matched.join(", "))}</span>` : ""}
+        </div>
+        <ul class="routes">
+          ${(l.resources ?? [])
+            .map((r) => `<li><span>${esc(r.resource)}</span><span class="p">${esc(r.price)}</span></li>`)
+            .join("")}
+        </ul>
+        <div class="meta" style="margin-top:10px">
+          <a href="${esc(l.skillMdUrl)}">skill.md</a>
+          ${l.manifestUrl ? `<a href="${esc(l.manifestUrl)}">.well-known/x402</a>` : ""}
+          ${l.openapiUrl ? `<a href="${esc(l.openapiUrl)}">openapi.json</a>` : ""}
+          ${l.homepage ? `<a href="${esc(l.homepage)}">docs</a>` : ""}
+        </div>
+      </div>`,
+    )
+    .join("");
+}
+
+// Free browse — the whole index is public.
+$("free").addEventListener("click", async () => {
+  setStatus("Fetching the public index…");
+  try {
+    const res = await fetch("/skills.json");
+    const data = await res.json();
+    setStatus(`${data.count} listings in the index — free, no payment.`, "ok");
+    render(data.listings.map((row) => row.listing));
+  } catch (err) {
+    setStatus(`Could not reach the registry: ${err.message}`, "err");
+  }
+});
+
+// Paid search — the modal handles the 402 and fires this on success.
+addEventListener("x402:result", (event) => {
+  const detail = event.detail ?? {};
+  const data = detail.data ?? detail.result ?? detail;
+  if (!data || !Array.isArray(data.results)) {
+    setStatus("Payment went through, but the response was not a search result.", "err");
+    return;
+  }
+  setStatus(`Paid $0.001 — ${data.count} result(s) for “${data.query ?? ""}”.`, "ok");
+  render(data.results, { paid: true });
+
+  const receipt = data.receipt ?? detail.receipt;
+  if (receipt) {
+    resultsEl.insertAdjacentHTML(
+      "beforeend",
+      `<p class="receipt">receipt · rail ${esc(receipt.rail)} · ${esc(receipt.network)} · tx ${esc(receipt.transaction ?? "—")}</p>`,
+    );
+  }
+});
+
+addEventListener("x402:error", (event) => {
+  setStatus(`Payment failed: ${event.detail?.message ?? "unknown error"}`, "err");
+});
+
+setStatus("Ready. Browse for free, or pay $0.001 for a ranked search.");
+</script>
+</body>
+</html>
