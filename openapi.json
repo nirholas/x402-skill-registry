@@ -41,7 +41,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/health": {
@@ -70,7 +71,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/skills.json": {
@@ -78,6 +80,7 @@
         "operationId": "getIndex",
         "summary": "The full public index (free)",
         "description": "Every live listing with its signature. Free on purpose — a directory nobody can read is not a directory. Paid /search exists for ranking and filtering, not for access.",
+        "security": [],
         "responses": {
           "200": {
             "description": "The whole index.",
@@ -163,7 +166,8 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           }
-        }
+        },
+        "security": []
       }
     },
     "/check-signature": {
@@ -225,7 +229,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": []
       }
     },
     "/.well-known/x402": {
@@ -243,7 +248,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/skill.md": {
@@ -261,7 +267,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/register": {

@@ -73,6 +73,10 @@ Sepolia only. Override with `FACILITATOR_URL` and `SOLANA_FACILITATOR_URL`.
 
 - **Asset:** USDC (6 decimals) on both rails. `maxAmountRequired` is in base units — `"1000"`
   is $0.001.
+- **Invocation contract:** every accept also carries `outputSchema.input` (how to build the
+  request — method, query/path params, JSON body fields) and `outputSchema.output` (the JSON
+  Schema of the 200 body). Both are elided above for readability and both are generated from
+  `openapi.json`, so an agent can plan and call the route from the challenge alone.
 - **How to pay:** any x402 client. `x402-fetch` + `viem` on the EVM rail; on Solana build the
   SPL `transferChecked` (the network fee is sponsored by `extra.feePayer`, so you need no
   SOL), sign it, and base64 the envelope into `X-PAYMENT`.
