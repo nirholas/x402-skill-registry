@@ -1,0 +1,28 @@
+# x402-skill-registry
+
+> Searchable registry of x402-paid agent skills: register with a signed listing, agents search per query. Every listing accepts USDC on both Base and Solana.
+
+x402-skill-registry is an open-source repository by nirholas, part of the three.ws ecosystem.
+
+## Docs
+
+- [README](https://github.com/nirholas/x402-skill-registry/blob/HEAD/README.md): install, usage and reference
+- [What you get](https://github.com/nirholas/x402-skill-registry/blob/HEAD/README.md#what-you-get)
+- [The one rule](https://github.com/nirholas/x402-skill-registry/blob/HEAD/README.md#the-one-rule)
+- [Why the index is free and search is not](https://github.com/nirholas/x402-skill-registry/blob/HEAD/README.md#why-the-index-is-free-and-search-is-not)
+- [Why x402 for this](https://github.com/nirholas/x402-skill-registry/blob/HEAD/README.md#why-x402-for-this)
+- [Quickstart](https://github.com/nirholas/x402-skill-registry/blob/HEAD/README.md#quickstart)
+- [Human checkout demo](https://github.com/nirholas/x402-skill-registry/blob/HEAD/README.md#human-checkout-demo)
+- [How x402 works here](https://github.com/nirholas/x402-skill-registry/blob/HEAD/README.md#how-x402-works-here)
+- [Dual-rail payment: Base or Solana](https://github.com/nirholas/x402-skill-registry/blob/HEAD/README.md#dual-rail-payment-base-or-solana)
+- [AGENTS.md](https://github.com/nirholas/x402-skill-registry/blob/HEAD/AGENTS.md): guidance for coding agents
+- [Full text for LLMs](https://github.com/nirholas/x402-skill-registry/blob/HEAD/llms-full.txt): the README inlined
+
+## Project
+
+- [Source](https://github.com/nirholas/x402-skill-registry)
+- [Issues](https://github.com/nirholas/x402-skill-registry/issues)
+- [Discussions](https://github.com/nirholas/x402-skill-registry/discussions)
+- [Homepage](https://nirholas.github.io/x402-skill-registry/)
+- [three.ws](https://three.ws): the platform this is part of
+- [All repositories by nirholas](https://github.com/nirholas/nirholas#readme)
