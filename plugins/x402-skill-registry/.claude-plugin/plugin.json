@@ -1,0 +1,19 @@
+{
+  "name": "x402-skill-registry",
+  "version": "0.1.0",
+  "description": "Searchable registry of x402-paid agent skills: register a signed listing, search per query. Listings accept USDC on Base and Solana.",
+  "author": {
+    "name": "nirholas"
+  },
+  "repository": "https://github.com/nirholas/x402-skill-registry",
+  "homepage": "https://nirholas.github.io/x402-skill-registry/",
+  "license": "Apache-2.0",
+  "keywords": [
+    "x402",
+    "registry",
+    "skill-md",
+    "agent-discovery",
+    "usdc",
+    "ai-agents"
+  ]
+}
